@@ -429,8 +429,6 @@ struct Health
             std::istringstream sname(&buffer[0]);
             std::string name;
             // amd: asusec, intel: coretemp
-            // CCD: k10temp
-            // iGPU: amdgpu, GPU:
             if ((sname >> name) && (name == "asusec"))
             {
                 coretemp = base;
@@ -483,9 +481,7 @@ struct Tccd1
             }
             std::istringstream sname(&buffer[0]);
             std::string name;
-            // amd: asusec, intel: coretemp
             // CCD: k10temp
-            // iGPU: amdgpu, GPU:
             if ((sname >> name) && (name == "k10temp"))
             {
                 coretemp = base;
@@ -538,9 +534,7 @@ struct Tccd2
             }
             std::istringstream sname(&buffer[0]);
             std::string name;
-            // amd: asusec, intel: coretemp
             // CCD: k10temp
-            // iGPU: amdgpu, GPU:
             if ((sname >> name) && (name == "k10temp"))
             {
                 coretemp = base;
@@ -593,8 +587,6 @@ struct Igpu
             }
             std::istringstream sname(&buffer[0]);
             std::string name;
-            // amd: asusec, intel: coretemp
-            // CCD: k10temp
             // iGPU: amdgpu, hwmon1
             if ((sname >> name) && (name == "amdgpu"))
             {
@@ -648,8 +640,6 @@ struct Gpu
             }
             std::istringstream sname(&buffer[0]);
             std::string name;
-            // amd: asusec, intel: coretemp
-            // CCD: k10temp
             // GPU: amdgpu, hkmon0, ic = 1
             if ((sname >> name) && (name == "amdgpu"))
             {
