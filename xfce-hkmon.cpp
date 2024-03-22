@@ -405,6 +405,7 @@ std::ostream& operator<<(std::ostream& out, const Network::Bandwidth& speed)
 struct Health
 {
     typedef std::string Name;
+    std::string label;
 
     struct Thermometer
     {
@@ -427,7 +428,10 @@ struct Health
             }
             std::istringstream sname(&buffer[0]);
             std::string name;
-            if ((sname >> name) && (name == "coretemp"))
+            // amd: asusec, intel: coretemp
+            // CCD: k10temp
+            // iGPU: amdgpu, GPU:
+            if ((sname >> name) && (name == "asusec"))
             {
                 coretemp = base;
                 break;
@@ -450,15 +454,268 @@ struct Health
             if (!(temp >> tempMilliCelsius)) break;
             thermometers[name].tempMilliCelsius = tempMilliCelsius;
         }
-    }
+    }    
 };
+
+struct Tccd1
+{
+    typedef std::string Name;
+    std::string label;
+
+    struct Thermometer
+    {
+        int32_t tempMilliCelsius;
+    };
+
+    std::map<Name, Thermometer> thermometers;
+
+    void readProc()
+    {
+        std::string coretemp;
+        for (int hwmon = 0; hwmon < 10; hwmon++)
+        {
+            std::string base = VA_STR("/sys/class/hwmon/hwmon" << hwmon);
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) // pre-3.15 kernel?
+            {
+                base.append("/device");
+                if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) break;
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            // amd: asusec, intel: coretemp
+            // CCD: k10temp
+            // iGPU: amdgpu, GPU:
+            if ((sname >> name) && (name == "k10temp"))
+            {
+                coretemp = base;
+                break;
+            }
+        }
+
+        if (!coretemp.empty()) for (int ic = 3; ic < 5; ic++)
+        {
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_label").c_str(), buffer, false))
+            {
+                if (thermometers.empty()) continue; else break; // Atom CPU may start at 2 (!?)
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            if (!std::getline(sname, name) || name.empty()) break;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_input").c_str(), buffer, false)) break;
+            std::istringstream temp(&buffer[0]);
+            int32_t tempMilliCelsius;
+            if (!(temp >> tempMilliCelsius)) break;
+            thermometers[name].tempMilliCelsius = tempMilliCelsius;
+        }
+    }    
+};
+
+struct Tccd2
+{
+    typedef std::string Name;
+    std::string label;
+
+    struct Thermometer
+    {
+        int32_t tempMilliCelsius;
+    };
+
+    std::map<Name, Thermometer> thermometers;
+
+    void readProc()
+    {
+        std::string coretemp;
+        for (int hwmon = 0; hwmon < 10; hwmon++)
+        {
+            std::string base = VA_STR("/sys/class/hwmon/hwmon" << hwmon);
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) // pre-3.15 kernel?
+            {
+                base.append("/device");
+                if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) break;
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            // amd: asusec, intel: coretemp
+            // CCD: k10temp
+            // iGPU: amdgpu, GPU:
+            if ((sname >> name) && (name == "k10temp"))
+            {
+                coretemp = base;
+                break;
+            }
+        }
+
+        if (!coretemp.empty()) for (int ic = 4; ic < 5; ic++)
+        {
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_label").c_str(), buffer, false))
+            {
+                if (thermometers.empty()) continue; else break; // Atom CPU may start at 2 (!?)
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            if (!std::getline(sname, name) || name.empty()) break;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_input").c_str(), buffer, false)) break;
+            std::istringstream temp(&buffer[0]);
+            int32_t tempMilliCelsius;
+            if (!(temp >> tempMilliCelsius)) break;
+            thermometers[name].tempMilliCelsius = tempMilliCelsius;
+        }
+    }    
+};
+
+struct Igpu
+{
+    typedef std::string Name;
+    std::string label;
+
+    struct Thermometer
+    {
+        int32_t tempMilliCelsius;
+    };
+
+    std::map<Name, Thermometer> thermometers;
+
+    void readProc()
+    {
+        std::string coretemp;
+        for (int hwmon = 1; hwmon < 10; hwmon++)
+        {
+            std::string base = VA_STR("/sys/class/hwmon/hwmon" << hwmon);
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) // pre-3.15 kernel?
+            {
+                base.append("/device");
+                if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) break;
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            // amd: asusec, intel: coretemp
+            // CCD: k10temp
+            // iGPU: amdgpu, hwmon1
+            if ((sname >> name) && (name == "amdgpu"))
+            {
+                coretemp = base;
+                break;
+            }
+        }
+
+        if (!coretemp.empty()) for (int ic = 1; ic < 5; ic++)
+        {
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_label").c_str(), buffer, false))
+            {
+                if (thermometers.empty()) continue; else break; // Atom CPU may start at 2 (!?)
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            if (!std::getline(sname, name) || name.empty()) break;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_input").c_str(), buffer, false)) break;
+            std::istringstream temp(&buffer[0]);
+            int32_t tempMilliCelsius;
+            if (!(temp >> tempMilliCelsius)) break;
+            thermometers[name].tempMilliCelsius = tempMilliCelsius;
+        }
+    }    
+};
+
+struct Gpu
+{
+    typedef std::string Name;
+    std::string label;
+
+    struct Thermometer
+    {
+        int32_t tempMilliCelsius;
+    };
+
+    std::map<Name, Thermometer> thermometers;
+
+    void readProc()
+    {
+        std::string coretemp;
+        for (int hwmon = 0; hwmon < 10; hwmon++)
+        {
+            std::string base = VA_STR("/sys/class/hwmon/hwmon" << hwmon);
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) // pre-3.15 kernel?
+            {
+                base.append("/device");
+                if (!readFile(VA_STR(base << "/name").c_str(), buffer, false)) break;
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            // amd: asusec, intel: coretemp
+            // CCD: k10temp
+            // GPU: amdgpu, hkmon0, ic = 1
+            if ((sname >> name) && (name == "amdgpu"))
+            {
+                coretemp = base;
+                break;
+            }
+        }
+
+        if (!coretemp.empty()) for (int ic = 1; ic < 5; ic++)
+        {
+            std::vector<char> buffer;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_label").c_str(), buffer, false))
+            {
+                if (thermometers.empty()) continue; else break; // Atom CPU may start at 2 (!?)
+            }
+            std::istringstream sname(&buffer[0]);
+            std::string name;
+            if (!std::getline(sname, name) || name.empty()) break;
+            if (!readFile(VA_STR(coretemp << "/temp" << ic << "_input").c_str(), buffer, false)) break;
+            std::istringstream temp(&buffer[0]);
+            int32_t tempMilliCelsius;
+            if (!(temp >> tempMilliCelsius)) break;
+            thermometers[name].tempMilliCelsius = tempMilliCelsius;
+        }
+    }    
+};
+
 
 std::ostream& operator<<(std::ostream& out, const Health::Thermometer& thm)
 {
     return out << thm.tempMilliCelsius;
 }
+std::ostream& operator<<(std::ostream& out, const Tccd1::Thermometer& thm)
+{
+    return out << thm.tempMilliCelsius;
+}
+std::ostream& operator<<(std::ostream& out, const Tccd2::Thermometer& thm)
+{
+    return out << thm.tempMilliCelsius;
+}
+std::ostream& operator<<(std::ostream& out, const Igpu::Thermometer& thm)
+{
+    return out << thm.tempMilliCelsius;
+}
+std::ostream& operator<<(std::ostream& out, const Gpu::Thermometer& thm)
+{
+    return out << thm.tempMilliCelsius;
+}
 
 std::istream& operator>>(std::istream& in, Health::Thermometer& thm)
+{
+    return in >> thm.tempMilliCelsius;
+}
+std::istream& operator>>(std::istream& in, Tccd1::Thermometer& thm)
+{
+    return in >> thm.tempMilliCelsius;
+}
+std::istream& operator>>(std::istream& in, Tccd2::Thermometer& thm)
+{
+    return in >> thm.tempMilliCelsius;
+}
+std::istream& operator>>(std::istream& in, Igpu::Thermometer& thm)
+{
+    return in >> thm.tempMilliCelsius;
+}
+std::istream& operator>>(std::istream& in, Gpu::Thermometer& thm)
 {
     return in >> thm.tempMilliCelsius;
 }
@@ -506,6 +763,10 @@ int main(int argc, char** argv)
     std::shared_ptr<Network> new_Network, old_Network;
     Network::Bandwidth::Unit netSpeedUnit = Network::Bandwidth::Unit::bit;
     std::shared_ptr<Health>  new_Health;
+    std::shared_ptr<Tccd1>   new_Tccd1;
+    std::shared_ptr<Tccd2>   new_Tccd2;
+    std::shared_ptr<Igpu>    new_Igpu;
+    std::shared_ptr<Gpu>     new_Gpu;
     std::string selectedNetworkInterface;
 
     bool singleLine = false;
@@ -521,6 +782,10 @@ int main(int argc, char** argv)
         else if ((arg == "NET"))  new_Network.reset(new Network());
         else if ((arg == "NET8")) new_Network.reset(new Network()), netSpeedUnit = Network::Bandwidth::Unit::byte;
         else if ((arg == "TEMP")) posTemp = i, new_Health.reset(new Health());
+        else if ((arg == "CCD1")) posTemp = i, new_Tccd1.reset(new Tccd1());
+        else if ((arg == "CCD2")) posTemp = i, new_Tccd2.reset(new Tccd2());
+        else if ((arg == "IGPU")) posTemp = i, new_Igpu.reset(new Igpu());
+        else if ((arg == "GPU"))  posTemp = i, new_Gpu.reset(new Gpu());
         else
         {
             new_Network.reset(new Network());
@@ -540,6 +805,10 @@ int main(int argc, char** argv)
     if (new_IO)      { new_IO->readProc();      newState << "IO|"      << new_IO->devices;         }
     if (new_Network) { new_Network->readProc(); newState << "Network|" << new_Network->interfaces; }
     if (new_Health)  { new_Health->readProc();                                                     }
+    if (new_Tccd1)   { new_Tccd1->readProc();                                                      }
+    if (new_Tccd2)   { new_Tccd2->readProc();                                                      }
+    if (new_Igpu)    { new_Igpu->readProc();                                                       }
+    if (new_Gpu)     { new_Gpu->readProc();                                                        }
 
     for (int locTry = 0;; locTry++) // read the previous state from disk and store the new state
     {
@@ -624,7 +893,7 @@ int main(int argc, char** argv)
                 if (speed > 0) reportDetail << " - " << Network::Bandwidth { netSpeedUnit, speed };
                 reportDetail << " \n";
                 if (isSelectedInterface)
-                    reportStd << std::setw(6) << Network::Bandwidth { netSpeedUnit, speed } << " " << icon
+                    reportStd << std::setw(3) << Network::Bandwidth { netSpeedUnit, speed } << " " << icon
                               << (singleLine? " " : " \n");
             };
 
@@ -674,7 +943,7 @@ int main(int argc, char** argv)
                                  << "  (" << 100.0 * user_hz__sinceBoot / cpuTotalSinceBoot << "%) \n";
                 };
 
-                reportStd << std::setw(6) << std::fixed << std::setprecision(1) << usagePercent << "%";
+                reportStd << "<span fgcolor='#E95420'>" << std::setw(4) << std::fixed << std::setprecision(1) << usagePercent << "%</span>";
 
                 reportDetail << " CPU \u2699 " << std::fixed << std::setprecision(2) << usagePercent << "% \u2248 ";
 
@@ -703,6 +972,110 @@ int main(int argc, char** argv)
                         << "  @" << std::setprecision(3) << Padded<double> { 10, itc->second.ghz } << " GHz \n";
                 }
             }
+        }
+    }
+
+    if (new_Tccd1) // CCD1 report
+    {
+        struct ThermalStat
+        {
+           ThermalStat() : min(std::numeric_limits<int32_t>::max()),
+                           max(std::numeric_limits<int32_t>::min()),
+                           avg(0), count(0)
+           {}
+           int32_t min;
+           int32_t max;
+           int32_t avg;
+           std::size_t count;
+           Tccd1::Name firstName;
+        };
+
+        std::map<std::string, ThermalStat> statByCategory;
+        int32_t maxAbsTemp = std::numeric_limits<int32_t>::min();
+        for (const auto& itt : new_Tccd1->thermometers)
+        {
+            std::string key = itt.first;
+            auto its = statByCategory.find(key);
+            if (its == statByCategory.end())
+            {
+                its = statByCategory.insert( { key, ThermalStat() } ).first;
+                its->second.firstName = itt.first;
+            }
+            if (itt.second.tempMilliCelsius < its->second.min) its->second.min = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > its->second.max) its->second.max = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > maxAbsTemp) maxAbsTemp = itt.second.tempMilliCelsius;
+            auto prevTotal = its->second.avg * its->second.count;
+            its->second.count++;
+            its->second.avg = (prevTotal + itt.second.tempMilliCelsius) / its->second.count;
+        }
+
+        if (new_Tccd1 && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
+            reportStd << "<span fgcolor='#5E2750'>" << std::setw(3) << maxAbsTemp / 1000 << "°C</span>" << (singleLine? " " : "");
+
+        if (!statByCategory.empty()) reportDetail << " CCD: \n";
+
+        for (auto its = statByCategory.cbegin(); its != statByCategory.cend(); ++its)
+        {
+            if (its->second.count == 1)
+                reportDetail << "    " << its->second.firstName << ": " << its->second.max / 1000 << "ºC \n";
+            else
+                reportDetail << "    \u2206" << its->second.max / 1000
+                             << "ºC  \u2207" << its->second.min / 1000
+                             << "ºC  \u222B" << its->second.avg / 1000
+                             << "ºC  (" << its->second.count << " " << its->first << ") \n";
+        }
+    }
+
+    if (new_Igpu) // iGPU report
+    {
+        struct ThermalStat
+        {
+           ThermalStat() : min(std::numeric_limits<int32_t>::max()),
+                           max(std::numeric_limits<int32_t>::min()),
+                           avg(0), count(0)
+           {}
+           int32_t min;
+           int32_t max;
+           int32_t avg;
+           std::size_t count;
+           Igpu::Name firstName;
+        };
+
+        std::map<std::string, ThermalStat> statByCategory;
+        int32_t maxAbsTemp = std::numeric_limits<int32_t>::min();
+        for (const auto& itt : new_Igpu->thermometers)
+        {
+            std::string key = itt.first;
+            auto catEnd = key.find(" ");
+            if (catEnd != std::string::npos) key.erase(catEnd);
+            auto its = statByCategory.find(key);
+            if (its == statByCategory.end())
+            {
+                its = statByCategory.insert( { key, ThermalStat() } ).first;
+                its->second.firstName = itt.first;
+            }
+            if (itt.second.tempMilliCelsius < its->second.min) its->second.min = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > its->second.max) its->second.max = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > maxAbsTemp) maxAbsTemp = itt.second.tempMilliCelsius;
+            auto prevTotal = its->second.avg * its->second.count;
+            its->second.count++;
+            its->second.avg = (prevTotal + itt.second.tempMilliCelsius) / its->second.count;
+        }
+
+        if (new_Igpu && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
+            reportStd << "<span fgcolor='#BD0000'>" << std::setw(3) << maxAbsTemp / 1000 << "°C</span>" << (singleLine? " " : "\n");
+
+        if (!statByCategory.empty()) reportDetail << " iGPU: \n";
+
+        for (auto its = statByCategory.crbegin(); its != statByCategory.crend(); ++its)
+        {
+            if (its->second.count == 1)
+                reportDetail << "    " << its->second.firstName << ": " << its->second.max / 1000 << "ºC \n";
+            else
+                reportDetail << "    \u2206" << its->second.max / 1000
+                             << "ºC  \u2207" << its->second.min / 1000
+                             << "ºC  \u222B" << its->second.avg / 1000
+                             << "ºC  (" << its->second.count << " " << its->first << ") \n";
         }
     }
 
@@ -768,6 +1141,51 @@ int main(int argc, char** argv)
         for (const auto& itt : new_Health->thermometers)
         {
             std::string key = itt.first;
+            auto its = statByCategory.find(key);
+            if (its == statByCategory.end())
+            {
+                its = statByCategory.insert( { key, ThermalStat() } ).first;
+                its->second.firstName = itt.first;
+            }
+            if (itt.second.tempMilliCelsius < its->second.min) its->second.min = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > its->second.max) its->second.max = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > maxAbsTemp) maxAbsTemp = itt.second.tempMilliCelsius;
+            auto prevTotal = its->second.avg * its->second.count;
+            its->second.count++;
+            its->second.avg = (prevTotal + itt.second.tempMilliCelsius) / its->second.count;
+        }
+
+        if (new_CPU && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
+            reportStd << "<span fgcolor='#AD79A8'>" << std::setw(3) << maxAbsTemp / 1000 << "°C</span>" << (singleLine? " " : "");
+
+        if (!statByCategory.empty()) reportDetail << " CPU: \n";
+
+        for (auto its = statByCategory.cbegin(); its != statByCategory.cend(); ++its)
+        {
+            reportDetail << "    " << its->second.firstName << ": " << its->second.max / 1000 << "ºC \n";
+        }
+    }
+
+    if (new_Tccd2) // CCD2 report
+    {
+        struct ThermalStat
+        {
+           ThermalStat() : min(std::numeric_limits<int32_t>::max()),
+                           max(std::numeric_limits<int32_t>::min()),
+                           avg(0), count(0)
+           {}
+           int32_t min;
+           int32_t max;
+           int32_t avg;
+           std::size_t count;
+           Tccd2::Name firstName;
+        };
+
+        std::map<std::string, ThermalStat> statByCategory;
+        int32_t maxAbsTemp = std::numeric_limits<int32_t>::min();
+        for (const auto& itt : new_Tccd2->thermometers)
+        {
+            std::string key = itt.first;
             auto catEnd = key.find(" ");
             if (catEnd != std::string::npos) key.erase(catEnd);
             auto its = statByCategory.find(key);
@@ -784,12 +1202,52 @@ int main(int argc, char** argv)
             its->second.avg = (prevTotal + itt.second.tempMilliCelsius) / its->second.count;
         }
 
-        if (new_CPU && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
-            reportStd << std::setw(4) << maxAbsTemp / 1000 << "ºC" << (singleLine? " " : "\n");
+        if (new_Tccd2 && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
+            reportStd << "<span fgcolor='#5E2750'>" << std::setw(3) << maxAbsTemp / 1000 << "°C</span>" << (singleLine? " " : "");
 
-        if (!statByCategory.empty()) reportDetail << " Temperature: \n";
+    }
 
-        for (auto its = statByCategory.crbegin(); its != statByCategory.crend(); ++its)
+    if (new_Gpu) // GPU report
+    {
+        struct ThermalStat
+        {
+           ThermalStat() : min(std::numeric_limits<int32_t>::max()),
+                           max(std::numeric_limits<int32_t>::min()),
+                           avg(0), count(0)
+           {}
+           int32_t min;
+           int32_t max;
+           int32_t avg;
+           std::size_t count;
+           Gpu::Name firstName;
+        };
+
+        std::map<std::string, ThermalStat> statByCategory;
+        int32_t maxAbsTemp = std::numeric_limits<int32_t>::min();
+        for (const auto& itt : new_Gpu->thermometers)
+        {
+            std::string key = itt.first;
+            auto its = statByCategory.find(key);
+            if (its == statByCategory.end())
+            {
+                its = statByCategory.insert( { key, ThermalStat() } ).first;
+                its->second.firstName = itt.first;
+            }
+            if (itt.second.tempMilliCelsius < its->second.min) its->second.min = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > its->second.max) its->second.max = itt.second.tempMilliCelsius;
+            if (itt.second.tempMilliCelsius > maxAbsTemp) maxAbsTemp = itt.second.tempMilliCelsius;
+            auto prevTotal = its->second.avg * its->second.count;
+            its->second.count++;
+            its->second.avg = (prevTotal + itt.second.tempMilliCelsius) / its->second.count;
+        }
+
+        auto its = statByCategory.find("edge");
+        if (new_Gpu && (maxAbsTemp >= 0) && (!posRam || (posTemp < posRam)))
+            reportStd << "<span fgcolor='#ED1C24'>" << std::setw(3) << its->second.max / 1000 << "°C</span>" << (singleLine? " " : ""); 
+
+        if (!statByCategory.empty()) reportDetail << " GPU: \n";
+
+        for (auto its = statByCategory.cbegin(); its != statByCategory.cend(); ++its)
         {
             if (its->second.count == 1)
                 reportDetail << "    " << its->second.firstName << ": " << its->second.max / 1000 << "ºC \n";
@@ -802,7 +1260,7 @@ int main(int argc, char** argv)
     }
 
     std::string sReportStd = reportStd.str();
-    if (!sReportStd.empty() && (sReportStd.back() == '\n')) sReportStd.erase(sReportStd.end()-1);
+    if (!sReportStd.empty() && (sReportStd.back() == ' ')) sReportStd.erase(sReportStd.end()-1);
 
     if (sReportStd.empty()) sReportStd = "Hacker's\nMonitor"; // dummy message (allow the user to right-click)
 
