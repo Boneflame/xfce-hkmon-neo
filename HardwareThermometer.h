@@ -36,10 +36,13 @@ namespace Device {
     struct gpu_amd;
     struct gpu_intel;
     struct gpu_nvidia;
+    struct nvme_m;
+    struct nvme_g;
 
     static constexpr const char asusec[] = "asusec";
     static constexpr const char k10temp[] = "k10temp";
     static constexpr const char amdgpu[] = "amdgpu";
+    static constexpr const char nvme[] = "nvme";
 }
 
 // --- Helper function implementations directly in HardwareThermometer.h ---
@@ -145,10 +148,12 @@ public:
 
 
 // 使用模板类定义具体的温度传感器类 (需要根据已知的 hwmon 编号进行调整)
-class Tcpu : public HardwareThermometer<Device::cpu_amd, Device::asusec, 5, 10> {};     // 假设 CPU 对应的 hwmon 编号是 5
-class Tccd : public HardwareThermometer<Device::cpu_amd, Device::k10temp, 4, 5> {};     // 假设 CCD1 对应的 hwmon 编号是 4
-class Tigpu : public HardwareThermometer<Device::gpu_amd, Device::amdgpu, 1, 5> {};     // 假设 iGPU 对应的 hwmon 编号是 1
-class Tgpu : public HardwareThermometer<Device::gpu_amd, Device::amdgpu, 0, 5> {};      // 假设 GPU 对应的 hwmon 编号是 0
+class Tcpu : public HardwareThermometer<Device::cpu_amd, Device::asusec, 5, 10> {};     // AMD CPU 对应的 hwmon 编号是 5
+class Tccd : public HardwareThermometer<Device::cpu_amd, Device::k10temp, 4, 5> {};     // CCD 对应的 hwmon 编号是 4
+class Tigpu : public HardwareThermometer<Device::gpu_amd, Device::amdgpu, 1, 5> {};     // iGPU 对应的 hwmon 编号是 1
+class Tgpu : public HardwareThermometer<Device::gpu_amd, Device::amdgpu, 0, 5> {};      // GPU 对应的 hwmon 编号是 0
+class Tnvme_m : public HardwareThermometer<Device::nvme_m, Device::nvme, 2, 5> {};        // NVME motherboard 对应的 hwmon 编号是 2
+class Tnvme_g : public HardwareThermometer<Device::nvme_g, Device::nvme, 3, 5> {};        // NVME gen-z.2 pcie4 对应的 hwmon 编号是 3
 
 
 #endif // HARDWARE_THERMOMETER_H

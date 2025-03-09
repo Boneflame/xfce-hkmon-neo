@@ -451,9 +451,11 @@ int main(int argc, char** argv)
     std::shared_ptr<Network> new_Network, old_Network;
     Network::Bandwidth::Unit netSpeedUnit = Network::Bandwidth::Unit::bit;
     std::shared_ptr<Tcpu>    new_Tcpu;
-    std::shared_ptr<Tccd>   new_Tccd;
+    std::shared_ptr<Tccd>    new_Tccd;
     std::shared_ptr<Tigpu>   new_Tigpu;
     std::shared_ptr<Tgpu>    new_Tgpu;
+    std::shared_ptr<Tnvme_m>   new_Tnvme_m;
+    std::shared_ptr<Tnvme_g>   new_Tnvme_g;
     std::string selectedNetworkInterface;
 
     bool singleLine = false;
@@ -469,9 +471,11 @@ int main(int argc, char** argv)
         else if ((arg == "NET"))  new_Network.reset(new Network());
         else if ((arg == "NET8")) new_Network.reset(new Network()), netSpeedUnit = Network::Bandwidth::Unit::byte;
         else if ((arg == "TEMP")) posTemp = i, new_Tcpu.reset(new Tcpu());
-        else if ((arg == "CCD")) posTemp = i, new_Tccd.reset(new Tccd());
+        else if ((arg == "CCD"))  posTemp = i, new_Tccd.reset(new Tccd());
         else if ((arg == "IGPU")) posTemp = i, new_Tigpu.reset(new Tigpu());
         else if ((arg == "GPU"))  posTemp = i, new_Tgpu.reset(new Tgpu());
+        else if ((arg == "NVMEM"))  posTemp = i, new_Tnvme_m.reset(new Tnvme_m());
+        else if ((arg == "NVMEG"))  posTemp = i, new_Tnvme_g.reset(new Tnvme_g());
         else
         {
             new_Network.reset(new Network());
@@ -494,6 +498,8 @@ int main(int argc, char** argv)
     if (new_Tccd)    { new_Tccd->readProc();                                                       }
     if (new_Tigpu)   { new_Tigpu->readProc();                                                      }
     if (new_Tgpu)    { new_Tgpu->readProc();                                                       }
+    if (new_Tnvme_m) { new_Tnvme_m->readProc();                                                    }
+    if (new_Tnvme_g) { new_Tnvme_g->readProc();                                                    }
 
     for (int locTry = 0;; locTry++) // read the previous state from disk and store the new state
     {
@@ -663,6 +669,7 @@ int main(int argc, char** argv)
 
     reportTemperatureData(new_Tccd.get(), reportStd, reportDetail, "#5E2750", singleLine, posTemp, posRam, "CCD", "Tccd1", false);
     reportTemperatureData(new_Tigpu.get(), reportStd, reportDetail, "#BD0000", singleLine, posTemp, posRam, "iGPU", "edge");
+    reportTemperatureData(new_Tnvme_g.get(), reportStd, reportDetail, "#0068FF", singleLine, posTemp, posRam, "P5 (pci-0700)", "Composite");
     reportStd << "\n";
 
     if (new_Memory) // RAM report
@@ -707,9 +714,10 @@ int main(int argc, char** argv)
         }
     }
 
-    reportTemperatureData(new_Tcpu.get(), reportStd, reportDetail, "#AD79A8", singleLine, posTemp, posRam, "CPU", "CPU Package");
+    reportTemperatureData(new_Tcpu.get(), reportStd, reportDetail, "#CEBC86", singleLine, posTemp, posRam, "CPU", "CPU Package");
     reportTemperatureData(new_Tccd.get(), reportStd, reportDetail, "#5E2750", singleLine, posTemp, posRam, "CCD", "Tccd2");
     reportTemperatureData(new_Tgpu.get(), reportStd, reportDetail, "#ED1C24", singleLine, posTemp, posRam, "GPU", "junction");
+    reportTemperatureData(new_Tnvme_m.get(), reportStd, reportDetail, "#2189FF", singleLine, posTemp, posRam, "990 PRO (pci-0400)", "Composite");
 
 
     std::string sReportStd = reportStd.str();
